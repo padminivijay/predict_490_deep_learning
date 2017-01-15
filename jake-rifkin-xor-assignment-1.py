@@ -1,5 +1,6 @@
 from math import exp
 from random import random
+import pandas as pd
  
 ###############################################################################
 # Initialize the network
@@ -101,7 +102,7 @@ def update_weights(network, inputs, nu):
 # Train a network for a fixed number of epochs
 def train_network(network, data, nu, max_epoch,n_outputs,error_threshold=.5):
     """Data assumes that a structure of [design_matrix,target_matrix]"""
-    for epoch in range(max_epoch):
+    for epoch in range(max_epoch+1):
         sum_error = 0
         for row in data:
             inputs = row[0]
@@ -113,10 +114,12 @@ def train_network(network, data, nu, max_epoch,n_outputs,error_threshold=.5):
         if sum_error <= error_threshold:
             print "Achieved error threshold %.3f after %d epochs" %(error_threshold,epoch)
             break
-        if epoch%100==0:
+        if epoch%750==0:
             print '>epoch=%d, l_rate=%.2f error=%.3f' % (epoch, nu, sum_error)
     else:
         print "Reached maximum number of epochs (%d). Error: =%.3f"%(max_epoch,sum_error)
+        
+    return sum_error,epoch
  
 ###############################################################################
 # Predict/Util
@@ -149,37 +152,88 @@ def inspect_weights(network):
                 else:
                     #these are the connection weights
                     print "Weight from %s_%d to %s_%d = %.4f"%(l,g,n_l,j,weight)               
+
+def store_weights(network,initial=False):
+    """unpack weights into storage"""
+    store={}
+    
+    if initial:
+        r = 'initial'
+    else:
+        r = ""
         
+    for i,layer in enumerate(network):
+        if i ==0:
+            l = "input"
+        else:
+            l = "hidden"
+        for j,neuron in enumerate(layer):
+            for k,weight in enumerate(neuron['weights']):
+                if k != len(neuron['weights'])-1:
+                    store[r+l+str(j)+'_'+str(k)] = weight  
+                else:
+                    store[r+l+str(j)+'_bias'] = weight
+    return store
+            
 
 ###############################################################################
 # Main
 ###############################################################################
 
 def main(n_inputs=None,n_hidden=None,n_outputs=None,alpha=1.0,nu=.5):
-
-        
-    training_set = [
-                    [[0,0],[1,0]],
-                    [[1,0],[0,1]],
-                    [[0,1],[0,1]],
-                    [[1,1],[1,0]]]
     
-    # train the model
-    if n_inputs==None:
-        n_inputs = len(training_set[0][0])
-    if n_outputs==None:
-        n_outputs = len(training_set[0][1])
+    initial_weights = {}
+    results = {}
+    converged = []
+    err = []
+    num_epochs = []
+    preds = []
+    for i in range(101):
+        training_set = [
+                        [[0,0],[1,0]],
+                        [[1,0],[0,1]],
+                        [[0,1],[0,1]],
+                        [[1,1],[1,0]]]
         
-    nn = initialize_network(n_inputs,n_hidden,n_outputs)
-    train_network(nn,training_set,nu,5000,n_outputs,error_threshold=.1)
-    	
-    for row in training_set:
-   	prediction = predict(nn, row[0])
-   	print 'Expected=',row[1].index(max(row[1])),' Got=', prediction
+        # train the model
+        if n_inputs==None:
+            n_inputs = len(training_set[0][0])
+        if n_outputs==None:
+            n_outputs = len(training_set[0][1])
+            
+        nn = initialize_network(n_inputs,n_hidden,n_outputs)
+        initial_weights[i] = store_weights(nn,True)
+        nn_error,train_rounds = train_network(nn,training_set,nu,7500,n_outputs,error_threshold=.2)
+        results[i] = store_weights(nn)
+        err.append(nn_error)
+       	num_epochs.append(train_rounds)
+       	
+       	print "Run %d"%(i)
+       	success = 0.0
+        for row in training_set:
+            prediction = predict(nn, row[0])
+            print 'Expected=',row[1].index(max(row[1])),' Got=', prediction
+            if row[1].index(max(row[1])) == prediction:
+                success+=1.0
+        
+        preds.append(success/float(len(training_set)))
+        
+        if nn_error<= .2:
+            converged.append(1)
+        else:
+            converged.append(0)
+        
+            
+    dat_initial = pd.DataFrame(initial_weights).T                
+    dat_final = pd.DataFrame(results).T
+    dat_final['converged'] = converged
+    dat_final['sum_error'] = err
+    dat_final['num_epochs'] = num_epochs
     
-    inspect_weights(nn)
+    return dat_initial,dat_final
+        
 if __name__ == "__main__":
     
-    main(n_hidden=2,nu=.1)
-
+    dat_initial,dat_final = main(n_hidden=2,nu=.1)
+    df_nn_training = pd.concat([dat_initial,dat_final],axis=1)
 

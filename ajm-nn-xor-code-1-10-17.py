@@ -283,6 +283,7 @@ def main():
        
     arraySizeList = obtainNeuralNetworkSizeSpecs ()
     # Unpack the list; ascribe the various elements of the list to the sizes of different network layers    
+    #unnecessary
     inputArrayLength = arraySizeList[0]
     hiddenArrayLength = arraySizeList [1]
     outputArrayLength = arraySizeList [2]                        
@@ -297,6 +298,7 @@ def main():
     wWeightArray = initializeWeightArray (wWeightArraySizeList)
     vWeightArray = initializeWeightArray (vWeightArraySizeList)
 
+    #this is not useful
     initialWWeightArray = wWeightArray[:]
     initialVWeightArray = vWeightArray[:]    
 
@@ -307,8 +309,8 @@ def main():
     initialWWeightArray[0,1], initialVWeightArray[0,0], initialVWeightArray[0,1])
     print 'w(1,0) = %.3f   w(1,1) = %.3f         v(1,0) = %.3f   v(1,1) = %.3f' % (initialWWeightArray[1,0], 
     initialWWeightArray[1,1], initialVWeightArray[1,0], initialVWeightArray[1,1])        
-
-  
+#0000000000000000000000000000000
+    #move up in the program to the other constants
     epsilon = 0.2
     iteration = 0
     SSE_InitialTotal = 0.0
@@ -319,7 +321,7 @@ def main():
     
     # Before starting the training run, compute the initial SSE Total 
     #   (sum across SSEs for each training data set)     
-    
+    ###SINGLE FEED FORWARD PASS
     # Compute a single feed-forward pass and obtain the Actual Outputs for zeroth data set
     inputDataList = (0, 0)           
     actualAllNodesOutputList = ComputeSingleFeedforwardPass (inputDataList, wWeightArray, vWeightArray)        
